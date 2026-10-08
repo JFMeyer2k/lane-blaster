@@ -3,300 +3,248 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Frontline Rush 3D</title>
+<title>Army Gate Rush</title>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#06101a;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
-#game{position:fixed;inset:0}
-canvas{display:block;width:100%;height:100%}
-#hud{position:fixed;inset:0;pointer-events:none;color:#fff}
-.top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));text-shadow:0 2px 4px #000}
-.pill{background:#102133cc;border:1px solid #ffffff33;border-radius:14px;padding:7px 10px;font-weight:800}
-#progress{position:absolute;left:18%;right:18%;top:14px;height:8px;border-radius:9px;background:#102133aa;border:1px solid #ffffff44;overflow:hidden}
-#bar{height:100%;width:8%;background:linear-gradient(90deg,#27d7ff,#5cff85)}
-#start,#end{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#06101acc,#06101aee);z-index:5}
-.card{width:min(88vw,420px);padding:26px;border-radius:24px;background:#102133f2;border:1px solid #ffffff2e;box-shadow:0 20px 70px #0008;text-align:center;color:white}
-h1{margin:0 0 8px;font-size:34px;letter-spacing:-1px}
-p{opacity:.82;line-height:1.45}
-button{border:0;border-radius:16px;padding:15px 25px;background:#31d5ff;color:#04121b;font-size:18px;font-weight:900;box-shadow:0 8px 25px #00cfff44}
-.small{font-size:12px;opacity:.65;margin-top:14px}
-#end{display:none}
-#weapon{position:absolute;left:50%;transform:translateX(-50%);top:42px;font-size:13px}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#a9e3f4;font-family:Arial,Helvetica,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}canvas{width:100%;height:100%;display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 3px #000}
+#top{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 12px;padding-top:max(12px,env(safe-area-inset-top))}
+.badge{background:rgba(18,34,49,.82);border:2px solid rgba(255,255,255,.3);border-radius:14px;padding:7px 11px;font-weight:900;font-size:15px}
+#armyBadge{font-size:19px}
+#barWrap{position:absolute;top:58px;left:16%;right:16%;height:9px;border-radius:8px;background:#193040aa;border:1px solid #ffffff88;overflow:hidden}
+#bar{height:100%;width:4%;background:#35d7ff}
+#weapon{position:absolute;left:50%;transform:translateX(-50%);top:74px}
+#start,#end{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,15,24,.66);z-index:10}
+.card{width:min(88vw,420px);background:rgba(16,31,43,.96);border:1px solid #ffffff33;border-radius:25px;padding:26px;text-align:center;color:#fff;box-shadow:0 25px 70px #0009}
+.card h1{font-size:32px;margin:0 0 8px;letter-spacing:-1px}.card p{line-height:1.45;color:#dbeaf0}
+button{width:100%;border:0;border-radius:16px;padding:16px;background:#18c9ff;color:#04202a;font-weight:1000;font-size:19px}
+.small{font-size:12px;color:#9fb6c0;margin-top:12px}
+#tip{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:#0c2433c9;padding:9px 14px;border-radius:18px;font-size:13px;white-space:nowrap}
 </style>
 </head>
 <body>
 <div id="game"></div>
 <div id="hud">
-  <div class="top">
-    <div class="pill">👥 <span id="army">8</span></div>
-    <div class="pill">🪙 <span id="coins">0</span></div>
-  </div>
-  <div id="progress"><div id="bar"></div></div>
-  <div id="weapon" class="pill">RIFLE • Lv 1</div>
+ <div id="top">
+  <div class="badge">👥 <span id="army">8</span></div>
+  <div class="badge">🪙 <span id="coins">0</span></div>
+ </div>
+ <div id="barWrap"><div id="bar"></div></div>
+ <div id="weapon" class="badge">🔫 RIFLE 1</div>
+ <div id="tip">DRAG LEFT / RIGHT • CHOOSE THE BETTER GATE</div>
 </div>
 <div id="start"><div class="card">
-  <h1>FRONTLINE RUSH</h1>
-  <p>Lead your squad down the battlefield. Drag left or right, shoot enemies automatically, and choose the best gates.</p>
-  <button id="play">PLAY</button>
-  <div class="small">Made as an original 3D game inspired by the mobile-ad army-runner genre.</div>
+ <h1>ARMY GATE RUSH</h1>
+ <p>Move your squad left and right. Shoot through gates, collect weapons, multiply your army and destroy the enemy commander.</p>
+ <button id="play">PLAY</button>
+ <div class="small">Original 3D browser game inspired by the mobile army-runner ad genre.</div>
 </div></div>
 <div id="end"><div class="card">
-  <h1 id="result">MISSION COMPLETE</h1>
-  <p id="resultText"></p>
-  <button id="again">PLAY AGAIN</button>
+ <h1 id="result">VICTORY!</h1><p id="resultText"></p><button id="again">PLAY AGAIN</button>
 </div></div>
 
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x82c8df);
-scene.fog = new THREE.Fog(0x82c8df, 35, 115);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9bdced);
+scene.fog=new THREE.Fog(0x9bdced,35,145);
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, .1, 220);
-camera.position.set(0,6.8,12);
-camera.lookAt(0,1,-18);
+const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,220);
+camera.position.set(0,9.5,15);camera.lookAt(0,1,-25);
 
-const renderer = new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
 renderer.setSize(innerWidth,innerHeight);
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-document.getElementById('game').appendChild(renderer.domElement);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.getElementById("game").appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xcff6ff,0x27453a,2.3));
-const sun=new THREE.DirectionalLight(0xffffff,3.2);
-sun.position.set(-15,25,12); sun.castShadow=true;
-sun.shadow.mapSize.set(1024,1024);
-scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xeaffff,0x365348,2.5));
+const sun=new THREE.DirectionalLight(0xffffff,3.5);
+sun.position.set(-15,25,15);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
 
-const mat = (c,rough=0.8)=>new THREE.MeshStandardMaterial({color:c,roughness:rough});
-const blue=mat(0x1976d2), blue2=mat(0x55c7ff), skin=mat(0xf0b07a), dark=mat(0x162331), red=mat(0xe53c45), red2=mat(0xff5962), gold=mat(0xffc928), white=mat(0xf2f7fb), green=mat(0x3fe27c);
+const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.72,metalness:0});
+const blue=M(0x1387d1),blueLight=M(0x43c7ff),white=M(0xf2f2e8),skin=M(0xd99a6a),pants=M(0x1974c5),boots=M(0x26313a);
+const red=M(0xd8323d),redLight=M(0xff555e),dark=M(0x17232c),gold=M(0xffc72e);
+const gateBlue=M(0x168de0),gateRed=M(0xe43b43),roadM=M(0x667178),railM=M(0xdbe5e6),waterM=M(0x279bc0);
 
-const road = new THREE.Mesh(new THREE.BoxGeometry(14,.35,190),mat(0x55616a));
-road.position.set(0,-.25,-62); road.receiveShadow=true; scene.add(road);
-const shoulder=mat(0x35443d);
-for(const x of [-8.1,8.1]){
- const s=new THREE.Mesh(new THREE.BoxGeometry(2,.25,190),shoulder);s.position.set(x,-.28,-62);scene.add(s);
+let running=false,army=8,coins=0,weapon=1,targetX=0,worldZ=0,gateIndex=0,boss=null;
+let soldiers=[],enemies=[],gates=[],crates=[],bullets=[],fx=[];
+let fireClock=0,spawnClock=0,last=performance.now();
+
+function mesh(g,m,pos){
+ const o=new THREE.Mesh(g,m);if(pos)o.position.set(...pos);o.castShadow=true;o.receiveShadow=true;return o;
 }
-for(let z=-5;z>-145;z-=8){
- const line=new THREE.Mesh(new THREE.BoxGeometry(.22,.03,4.2),white);
- line.position.set(0,-.04,z); scene.add(line);
-}
-const water=new THREE.Mesh(new THREE.PlaneGeometry(220,220),mat(0x2f9cc5,.45));
-water.rotation.x=-Math.PI/2; water.position.set(0,-.55,-65); scene.add(water);
-
-function makeTree(x,z){
+function makeSoldier(isEnemy=false){
  const g=new THREE.Group();
- const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,1.5,7),mat(0x6d432a)); trunk.position.y=.5;
- const crown=new THREE.Mesh(new THREE.ConeGeometry(1.1,2.7,7),mat(0x25834c)); crown.position.y=2.25;
- g.add(trunk,crown);g.position.set(x,0,z);scene.add(g);
-}
-for(let z=-10;z>-140;z-=12){makeTree(-11-(z%3),z);makeTree(11+(z%2),z-5)}
-
-function soldier(color=blue, enemy=false){
- const g=new THREE.Group();
- const torso=new THREE.Mesh(new THREE.BoxGeometry(.55,.8,.36),color); torso.position.y=1.15; torso.castShadow=true;
- const head=new THREE.Mesh(new THREE.SphereGeometry(.27,12,8),skin); head.position.y=1.78; head.castShadow=true;
- const helmet=new THREE.Mesh(new THREE.SphereGeometry(.31,12,8,0,Math.PI*2,0,Math.PI*.52),enemy?red2:blue2); helmet.position.y=1.91;
- const brim=new THREE.Mesh(new THREE.BoxGeometry(.48,.08,.35),enemy?red2:blue2);brim.position.set(0,1.83,.08);
- const armL=new THREE.Mesh(new THREE.BoxGeometry(.16,.55,.16),color);armL.position.set(-.38,1.18,0);
- const armR=armL.clone();armR.position.x=.38;
- const legL=new THREE.Mesh(new THREE.BoxGeometry(.18,.62,.2),dark);legL.position.set(-.16,.43,0);
- const legR=legL.clone();legR.position.x=.16;
- const gun=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.8),dark);gun.position.set(0,1.2,-.48);
- g.add(torso,head,helmet,brim,armL,armR,legL,legR,gun);
- g.userData={phase:Math.random()*6.28,gun};
+ const body=mesh(new THREE.SphereGeometry(.32,12,8),isEnemy?red:blue,[0,1.25,0]);body.scale.set(1,1.15,.72);
+ const shirt=mesh(new THREE.BoxGeometry(.48,.55,.34),isEnemy?red:blue,[0,1.02,0]);
+ const head=mesh(new THREE.SphereGeometry(.27,12,9),skin,[0,1.78,0]);
+ const helmet=mesh(new THREE.SphereGeometry(.31,12,8,0,Math.PI*2,0,Math.PI*.55),isEnemy?redLight:blueLight,[0,1.9,0]);
+ const brim=mesh(new THREE.BoxGeometry(.48,.07,.32),isEnemy?redLight:blueLight,[0,1.82,.09]);
+ const l=mesh(new THREE.BoxGeometry(.14,.55,.15),isEnemy?red:blue,[-.34,1.08,0]);
+ const r=l.clone();r.position.x=.34;
+ const ll=mesh(new THREE.BoxGeometry(.16,.5,.17),pants,[-.14,.45,0]);
+ const rr=ll.clone();rr.position.x=.14;
+ const gun=mesh(new THREE.BoxGeometry(.1,.1,.68),dark,[0,1.2,-.42]);
+ g.add(body,shirt,head,helmet,brim,l,r,ll,rr,gun);
+ g.userData={enemy:isEnemy,hp:isEnemy?3:0,phase:Math.random()*6.28,gun};
  return g;
 }
 
-const squad=[];
-let armyCount=8, targetX=0, runZ=0, coins=0, weaponLv=1, alive=true, boss=null;
-function rebuildSquad(){
- while(squad.length<armyCount){
-  const s=soldier(blue,false);scene.add(s);squad.push(s);
- }
- while(squad.length>armyCount){scene.remove(squad.pop());}
+function rebuild(){
+ while(soldiers.length<army){let s=makeSoldier(false);scene.add(s);soldiers.push(s)}
+ while(soldiers.length>army)scene.remove(soldiers.pop());
 }
-rebuildSquad();
-
-function formation(){
- const n=squad.length, cols=Math.min(5,Math.max(2,Math.ceil(Math.sqrt(n))));
- squad.forEach((s,i)=>{
-   const row=Math.floor(i/cols), col=i%cols;
-   const width=(Math.min(cols,5)-1)*1.05;
-   const x=(col*1.05-width/2)+(row%2?.15:0);
-   s.position.x += (targetX+x-s.position.x)*.12;
-   s.position.y = 0;
-   s.position.z = 7 + row*.8;
-   s.rotation.y = Math.PI;
-   const bob=Math.sin(performance.now()/110+s.userData.phase)*.05;
-   s.position.y=bob;
+function layout(){
+ const n=soldiers.length,cols=Math.min(7,Math.max(2,Math.ceil(Math.sqrt(n))));
+ soldiers.forEach((s,i)=>{
+  const row=Math.floor(i/cols),col=i%cols;
+  const x=(col-(cols-1)/2)*.78+(row%2?.12:0);
+  const z=5.6+row*.72;
+  s.position.x+=(targetX+x-s.position.x)*.16;
+  s.position.z=z;s.position.y=Math.sin(performance.now()/115+s.userData.phase)*.035;
+  s.rotation.y=Math.PI;
  });
 }
 
-const gates=[], enemies=[], bullets=[], pickups=[], particles=[];
-function clearArr(arr,fn){while(arr.length){fn(arr.pop())}}
+const road=mesh(new THREE.BoxGeometry(13,.3,210),roadM,[0,-.3,-70]);scene.add(road);
+const water=mesh(new THREE.PlaneGeometry(220,220),waterM);water.rotation.x=-Math.PI/2;water.position.set(0,-.53,-70);scene.add(water);
+for(const x of [-7.15,7.15])scene.add(mesh(new THREE.BoxGeometry(.35,1.5,210),railM,[x,.35,-70]));
+for(let z=8;z>-170;z-=7)scene.add(mesh(new THREE.BoxGeometry(.16,.03,3.2),white,[0,-.12,z]));
+for(let z=-8;z>-160;z-=15){
+ for(const x of [-11,11]){const t=mesh(new THREE.CylinderGeometry(.18,.25,1.4,7),M(0x70462b),[x,0,z]);const c=mesh(new THREE.ConeGeometry(1.2,2.8,8),M(0x27814b),[x,2,z]);}
+}
 
-function gate(z, left, right){
- const g=new THREE.Group(); g.position.z=z; g.userData={left,right,done:false};
- for(const [x,val,positive] of [[-3.4,left,left>=0],[3.4,right,right>=0]]){
-   const frame=new THREE.Mesh(new THREE.BoxGeometry(.22,4,.22),positive?blue2:red2);frame.position.set(x,2,0);
-   const top=new THREE.Mesh(new THREE.BoxGeometry(7,.22,.22),positive?blue2:red2);top.position.set(0,3.8,0);
-   const panel=new THREE.Mesh(new THREE.BoxGeometry(6.4,2.5,.12),new THREE.MeshStandardMaterial({color:positive?0x1385d8:0xd92e3e,transparent:true,opacity:.25}));
-   panel.position.set(x/2,1.9,0);
-   g.add(frame,top,panel);
-   const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
-   ctx.fillStyle='#fff';ctx.font='bold 120px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((val>=0?'+':'')+val,256,130);
-   const tex=new THREE.CanvasTexture(c);
-   const label=new THREE.Mesh(new THREE.PlaneGeometry(2.7,1.35),new THREE.MeshBasicMaterial({map:tex,transparent:true}));
-   label.position.set(x,2, -.15);g.add(label);
+function label(text,color){
+ const c=document.createElement("canvas");c.width=700;c.height=280;const x=c.getContext("2d");
+ x.clearRect(0,0,c.width,c.height);x.font="900 170px Arial";x.textAlign="center";x.textBaseline="middle";x.lineWidth=18;x.strokeStyle="#16415c";x.strokeText(text,350,145);x.fillStyle="#fff";x.fillText(text,350,145);
+ const t=new THREE.CanvasTexture(c);const m=new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false});
+ return new THREE.Mesh(new THREE.PlaneGeometry(3.4,1.35),m);
+}
+function makeGate(z,left,right){
+ const g=new THREE.Group();g.position.z=z;g.userData={left,right,hit:false};
+ for(const side of [-1,1]){
+  const val=side<0?left:right,positive=val>0,matl=positive?gateBlue:gateRed,x=side*3.25;
+  const post1=mesh(new THREE.BoxGeometry(.18,4.8,.24),matl,[x,2.35,0]);
+  const post2=mesh(new THREE.BoxGeometry(.18,4.8,.24),matl,[x+side*.65,2.35,0]);
+  const top=mesh(new THREE.BoxGeometry(3.9,.22,.24),matl,[x+side*.325,4.65,0]);
+  const panel=mesh(new THREE.BoxGeometry(3.7,2.45,.12),matl,[x+side*.325,2.45,0]);
+  panel.material.transparent=true;panel.material.opacity=.92;
+  const lab=label(val.op+(val.n));lab.position.set(x+side*.325,2.55,-.1);g.add(post1,post2,top,panel,lab);
  }
  scene.add(g);gates.push(g);
 }
-for(let z=-25;z>-125;z-=25) gate(z, Math.random()<.5?6:12, Math.random()<.5?4:10);
-
-function enemyWave(z,count=7){
- for(let i=0;i<count;i++){
-   const e=soldier(red,true);e.position.set((Math.random()-.5)*9,0,z-Math.random()*3);
-   e.userData.hp=3+Math.floor(Math.random()*3)+Math.floor(-z/55);e.userData.max=e.userData.hp;
-   scene.add(e);enemies.push(e);
+function makeCrate(z,x=0){
+ const c=mesh(new THREE.BoxGeometry(1.25,1.25,1.25),M(0xd99027),[x,1,z]);
+ c.userData={weapon:true,spin:Math.random()*6};scene.add(c);crates.push(c);
+}
+function enemyWave(z,n){
+ for(let i=0;i<n;i++){
+  const e=makeSoldier(true);e.position.set((Math.random()-.5)*7.5,0,z-Math.random()*2.5);
+  e.userData.hp=3+Math.floor(Math.abs(z)/60);e.userData.max=e.userData.hp;scene.add(e);enemies.push(e);
  }
 }
-enemyWave(-48,8);enemyWave(-78,10);enemyWave(-108,13);
-
 function bullet(from,to){
- const dir=new THREE.Vector3().subVectors(to,from), len=dir.length();
- const b=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,len,5),gold);
- b.position.copy(from).add(to).multiplyScalar(.5);b.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
- b.userData={v:dir.multiplyScalar(34),life:1.2};scene.add(b);bullets.push(b);
+ const d=new THREE.Vector3().subVectors(to,from),len=d.length();
+ const b=mesh(new THREE.CylinderGeometry(.035,.035,len,5),gold);b.position.copy(from).add(to).multiplyScalar(.5);b.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());b.userData={v:d.multiplyScalar(38),life:1};scene.add(b);bullets.push(b);
 }
-function muzzleFlash(p){
- const m=new THREE.Mesh(new THREE.SphereGeometry(.12,6,6),gold);m.position.copy(p);scene.add(m);
- particles.push({m,life:.08,vel:new THREE.Vector3(0,0,0)});
+function flash(p){
+ const q=mesh(new THREE.SphereGeometry(.13,6,6),gold,p);fx.push({m:q,life:.09,v:new THREE.Vector3()});
 }
-function nearestEnemy(){
- let best=null,d=1e9;
- for(const e of enemies){const dd=e.position.distanceToSquared(new THREE.Vector3(targetX,1,runZ-10));if(dd<d){d=dd;best=e;}}
+function nearest(){
+ let best=null,bd=1e9;
+ for(const e of enemies){const d=e.position.distanceToSquared(new THREE.Vector3(targetX,1,worldZ-8));if(d<bd){bd=d;best=e}}
  return best;
 }
 function shoot(){
- const e=nearestEnemy(); if(!e)return;
- const shooters=Math.min(squad.length,12);
- for(let i=0;i<shooters;i+=2){
-   const s=squad[i]; const from=s.position.clone().add(new THREE.Vector3(0,1.25,-.5));
-   bullet(from,e.position.clone().add(new THREE.Vector3(0,1,0)));muzzleFlash(from);
- }
+ const e=nearest();if(!e)return;
+ const count=Math.min(soldiers.length,24);
+ for(let i=0;i<count;i+=2){const s=soldiers[i];const p=s.position.clone().add(new THREE.Vector3(0,1.2,-.5));bullet(p,e.position.clone().add(new THREE.Vector3(0,1.1,0)));flash(p)}
 }
-
-let last=performance.now(), fireTimer=0, spawnTimer=0;
-function applyGate(g){
- const x=g.position.x;
- const val=x<0?g.userData.left:g.userData.right;
- armyCount=Math.max(1,Math.min(80,armyCount+val));
- rebuildSquad();
- g.userData.done=true;
- for(let i=0;i<12;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(.07,5,5),gold);p.position.set(x/2,1.8,g.position.z);scene.add(p);particles.push({m:p,life:.5,vel:new THREE.Vector3((Math.random()-.5)*4,Math.random()*4,Math.random()*2)});}
+function bossMake(){
+ boss=makeSoldier(true);boss.scale.set(4,4,4);boss.position.set(0,0,-142);boss.userData.hp=180+army*3;boss.userData.max=boss.userData.hp;scene.add(boss);
+ const r=mesh(new THREE.TorusGeometry(2.5,.1,8,32),gold,[0,4.7,0]);r.rotation.x=Math.PI/2;boss.add(r);
 }
-function spawnWeapon(z){
- const box=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),white);
- box.position.set((Math.random()-.5)*8,1,z);
- box.userData={weapon:true};scene.add(box);pickups.push(box);
-}
-spawnWeapon(-63);spawnWeapon(-96);
-
-function makeBoss(){
- boss=soldier(red,true); boss.scale.set(3,3,3); boss.position.set(0,0,-132); boss.userData.hp=260;boss.userData.max=260;
- scene.add(boss);
- const ring=new THREE.Mesh(new THREE.TorusGeometry(2.4,.08,8,32),gold);ring.rotation.x=Math.PI/2;ring.position.y=5.2;boss.add(ring);
-}
-
 function reset(){
- alive=true; armyCount=8;coins=0;weaponLv=1;targetX=0;runZ=0;boss=null;
- document.getElementById('coins').textContent=coins;document.getElementById('weapon').textContent='RIFLE • Lv 1';
- clearArr(enemies,e=>scene.remove(e));clearArr(gates,g=>scene.remove(g));clearArr(pickups,p=>scene.remove(p));clearArr(bullets,b=>scene.remove(b));
- rebuildSquad();
- for(let z=-25;z>-125;z-=25)gate(z,Math.random()<.5?6:12,Math.random()<.5?4:10);
- enemyWave(-48,8);enemyWave(-78,10);enemyWave(-108,13);spawnWeapon(-63);spawnWeapon(-96);
- document.getElementById('end').style.display='none';
+ running=true;army=8;coins=0;weapon=1;targetX=0;worldZ=0;boss=null;
+ [...enemies,...gates,...crates,...bullets,...soldiers].forEach(o=>scene.remove(o));
+ enemies=[];gates=[];crates=[];bullets=[];soldiers=[];
+ rebuild();
+ for(let z=-20;z>-130;z-=22){
+  const choices=[
+   [{op:"x",n:2},{op:"-",n:3}],
+   [{op:"+",n:12},{op:"x",n:2}],
+   [{op:"x",n:3},{op:"-",n:5}],
+   [{op:"+",n:20},{op:"÷",n:2}],
+   [{op:"x",n:4},{op:"+",n:8}],
+   [{op:"-",n:4},{op:"x",n:2}]
+  ];
+  const c=choices[Math.floor(Math.random()*choices.length)];makeGate(z,c[0],c[1]);
+ }
+ enemyWave(-42,9);enemyWave(-69,12);enemyWave(-97,16);enemyWave(-122,20);
+ makeCrate(-53,-2.7);makeCrate(-82,2.8);makeCrate(-111,0);
+ document.getElementById("end").style.display="none";
+ document.getElementById("tip").style.display="block";
 }
-function finish(win){
- alive=false;
- document.getElementById('result').textContent=win?'MISSION COMPLETE':'SQUAD DEFEATED';
- document.getElementById('resultText').textContent=win?`You reached the command point with ${armyCount} soldiers and ${coins} coins.`:`Your squad was overwhelmed. You finished with ${armyCount} soldiers.`;
- document.getElementById('end').style.display='flex';
+function gateApply(g){
+ const chosen=targetX<0?g.userData.left:g.userData.right;
+ if(chosen.op==="x") army=Math.min(120,Math.floor(army*chosen.n));
+ else if(chosen.op==="÷") army=Math.max(1,Math.floor(army/chosen.n));
+ else army=Math.max(1,Math.min(120,army+(chosen.op==="-"?-chosen.n:chosen.n)));
+ rebuild();g.userData.hit=true;
+ for(let i=0;i<18;i++){const p=mesh(new THREE.SphereGeometry(.06,5,5),gold,[g.position.x/3,2,g.position.z]);scene.add(p);fx.push({m:p,life:.55,v:new THREE.Vector3((Math.random()-.5)*5,Math.random()*4,Math.random()*3)})}
 }
-
+function end(win){
+ running=false;document.getElementById("result").textContent=win?"VICTORY!":"SQUAD LOST";
+ document.getElementById("resultText").textContent=win?`You broke through with ${army} soldiers and ${coins} coins.`:`The enemy stopped your squad with ${army} soldiers left.`;
+ document.getElementById("end").style.display="flex";
+}
 function update(dt){
- if(!alive)return;
- runZ-=dt*5.5;
- formation();
- camera.position.x+=(targetX*.35-camera.position.x)*.08;
- camera.position.z=12;
- camera.lookAt(targetX*.25,1.2,runZ-18);
+ if(!running)return;
+ worldZ-=dt*6.2;
+ layout();
+ camera.position.x+=(targetX*.28-camera.position.x)*.08;camera.position.z=15;camera.lookAt(targetX*.2,1.2,worldZ-24);
 
- for(const g of gates){
-   g.position.z += dt*5.5;
-   if(!g.userData.done && g.position.z>runZ+5){applyGate(g);g.userData.done=true;}
- }
- for(let i=gates.length-1;i>=0;i--)if(gates[i].position.z>20){scene.remove(gates[i]);gates.splice(i,1);}
+ for(const g of gates){g.position.z+=dt*6.2;if(!g.userData.hit&&g.position.z>worldZ+4)gateApply(g)}
+ for(let i=gates.length-1;i>=0;i--)if(gates[i].position.z>22){scene.remove(gates[i]);gates.splice(i,1)}
 
- fireTimer-=dt;if(fireTimer<=0){shoot();fireTimer=Math.max(.14,.34-weaponLv*.035);}
+ fireClock-=dt;if(fireClock<=0){shoot();fireClock=Math.max(.11,.28-weapon*.018)}
  for(const e of enemies){
-   e.position.z += dt*(2.2+Math.min(2,-e.position.z/80));
-   e.position.x += (targetX-e.position.x)*dt*.18;
-   const d=e.position.distanceTo(new THREE.Vector3(targetX,0,runZ+4));
-   if(d<1.4){armyCount=Math.max(1,armyCount-1);e.userData.hp=0;}
+  e.position.z+=dt*2.7;
+  e.position.x+=(targetX-e.position.x)*dt*.08;
+  if(e.position.z>worldZ+4){army=Math.max(1,army-1);e.userData.hp=0}
  }
- for(let i=enemies.length-1;i>=0;i--)if(enemies[i].userData.hp<=0 || enemies[i].position.z>20){scene.remove(enemies[i]);enemies.splice(i,1);}
+ for(let i=enemies.length-1;i>=0;i--)if(enemies[i].userData.hp<=0){scene.remove(enemies[i]);enemies.splice(i,1)}
 
  for(const b of bullets){
-   b.position.addScaledVector(b.userData.v,dt);b.userData.life-=dt;
-   for(const e of enemies){if(e.position.distanceTo(b.position)<.65){e.userData.hp--;b.userData.life=0;coins++;break;}}
-   if(boss&&boss.position.distanceTo(b.position)<1.8){boss.userData.hp--;b.userData.life=0;}
+  b.position.addScaledVector(b.userData.v,dt);b.userData.life-=dt;
+  for(const e of enemies)if(e.position.distanceTo(b.position)<.7){e.userData.hp--;coins++;b.userData.life=0;break}
+  if(boss&&boss.position.distanceTo(b.position)<2.0){boss.userData.hp--;coins++;b.userData.life=0}
  }
- for(let i=bullets.length-1;i>=0;i--)if(bullets[i].userData.life<=0){scene.remove(bullets[i]);bullets.splice(i,1);}
+ for(let i=bullets.length-1;i>=0;i--)if(bullets[i].userData.life<=0){scene.remove(bullets[i]);bullets.splice(i,1)}
 
- for(let i=pickups.length-1;i>=0;i--){
-   const p=pickups[i];p.rotation.y+=dt*2;
-   if(Math.abs(p.position.z-runZ)<3 && Math.abs(p.position.x-targetX)<2){
-     weaponLv=Math.min(9,weaponLv+1);document.getElementById('weapon').textContent='RIFLE • Lv '+weaponLv;
-     scene.remove(p);pickups.splice(i);
-   }
- }
- if(runZ<-124&&!boss)makeBoss();
- if(boss){
-   boss.position.z+=dt*2;
-   if(boss.userData.hp<=0)finish(true);
-   if(boss.position.z>runZ+4){finish(false);}
- }
- if(armyCount<=0)finish(false);
- document.getElementById('army').textContent=armyCount;
- document.getElementById('coins').textContent=coins;
- document.getElementById('bar').style.width=Math.min(100,Math.max(5,(-runZ/140)*100))+'%';
-}
+ for(let i=crates.length-1;i>=0;i--){const c=crates[i];c.rotation.y+=dt*1.8;if(Math.abs(c.position.z-worldZ)<2.8&&Math.abs(c.position.x-targetX)<2.1){weapon=Math.min(9,weapon+1);scene.remove(c);crates.splice(i);}}
+ if(worldZ<-130&&!boss)bossMake();
+ if(boss){boss.position.z+=dt*1.6;if(boss.userData.hp<=0)end(true);if(boss.position.z>worldZ+5)end(false)}
+ if(army<=0)end(false);
 
-function loop(t){
- const dt=Math.min(.035,(t-last)/1000);last=t;
- update(dt);
- renderer.render(scene,camera);
- requestAnimationFrame(loop);
+ for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.life-=dt;f.m.position.addScaledVector(f.v,dt);f.v.y-=8*dt;if(f.life<=0){scene.remove(f.m);fx.splice(i)}}
+ document.getElementById("army").textContent=army;document.getElementById("coins").textContent=coins;
+ document.getElementById("weapon").textContent="🔫 RIFLE "+weapon;
+ document.getElementById("bar").style.width=Math.min(100,Math.max(3,-worldZ/145*100))+"%";
 }
+function loop(t){const dt=Math.min(.035,(t-last)/1000);last=t;update(dt);renderer.render(scene,camera);requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 
-let dragging=false,lastX=0;
-renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX});
-renderer.domElement.addEventListener('pointermove',e=>{
- if(!dragging)return;
- const dx=e.clientX-lastX;lastX=e.clientX;
- targetX=Math.max(-5.2,Math.min(5.2,targetX+dx*.022));
-});
-renderer.domElement.addEventListener('pointerup',()=>dragging=false);
-renderer.domElement.addEventListener('pointercancel',()=>dragging=false);
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft')targetX-=1;if(e.key==='ArrowRight')targetX+=1;targetX=Math.max(-5.2,Math.min(5.2,targetX));});
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-
-document.getElementById('play').onclick=()=>{reset();document.getElementById('start').style.display='none';};
-document.getElementById('again').onclick=()=>{reset();};
+let down=false,lastX=0;
+renderer.domElement.addEventListener("pointerdown",e=>{down=true;lastX=e.clientX});
+renderer.domElement.addEventListener("pointermove",e=>{if(!down||!running)return;targetX=Math.max(-5.2,Math.min(5.2,targetX+(e.clientX-lastX)*.018));lastX=e.clientX});
+renderer.domElement.addEventListener("pointerup",()=>down=false);renderer.domElement.addEventListener("pointercancel",()=>down=false);
+addEventListener("keydown",e=>{if(e.key==="ArrowLeft")targetX=Math.max(-5.2,targetX-.65);if(e.key==="ArrowRight")targetX=Math.min(5.2,targetX+.65)});
+addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+document.getElementById("play").onclick=()=>{reset();document.getElementById("start").style.display="none"};
+document.getElementById("again").onclick=()=>reset();
 </script>
 </body>
 </html>
